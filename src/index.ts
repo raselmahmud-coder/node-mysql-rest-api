@@ -28,19 +28,20 @@ supermarketDB.connect(function (err: string) {
   if (err) {
     console.log("failed", err);
   }
-  console.log("Connected!");
   // database connection ready for creating api
+  console.log("Connected!");
 
-  /*   app.get("/:id", (req: Request, res: Response) => {
+// read method api
+    app.get("/:id", (req: Request, res: Response) => {
     const { id } = req.params;
     console.log(id,'id got')
   const sql = `SELECT * FROM actor where actor_id=${id}`;
-  con.query(sql, function (err:string, result:any) {
+  supermarketDB.query(sql, function (err:string, result:any) {
     if (err) throw err;
     console.log("Result:", result);
       res.send({response:result});
     });
-  }); */
+  });
 
   // update or modify method
   app.patch("/product/:id", (req: Request, res: Response) => {
