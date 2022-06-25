@@ -12,14 +12,18 @@
   "license": "ISC",
   "dependencies": {
     "@types/mysql": "^2.15.21",
+    "@types/node-fetch": "^2.6.2",
+    "axios": "^0.27.2",
     "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
     "easyinvoice": "^2.3.0",
     "express": "^4.18.1",
+    "imgbb-uploader": "^1.5.0",
     "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
     "node-base64-image": "^2.0.4",
+    "node-fetch": "^2.6.7",
     "qrcode": "^1.5.0"
   },
   "devDependencies": {

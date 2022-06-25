@@ -12,6 +12,7 @@
   </head>
   <body>
     <button onclick="renderInvoice()">Render Invoice</button>
+    <button onclick="getUser()">Click</button>
     <p>
       Invoice as base64 (click create invoice):
       <small id="invoiceBase64"></small>
@@ -19,13 +20,53 @@
     <div id="pdf"></div>
     <img id="img" src="" />
 
+    <h3> Base64 to Image </h3>
+<div id="main"></div>
+<textarea id="log"></textarea>
+
     <script>
+
+function getBase64Img() {
+    return "data:image/png;base64,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";
+}
+var base64img = getBase64Img();
+function Base64ToImage(base64img, callback) {
+    var img = new Image();
+    img.onload = function() {
+        callback(img);
+    };
+    img.src = base64img;
+}
+Base64ToImage(base64img, function(img) {
+    document.getElementById('main').appendChild(img);
+    var log = "w=" + img.width + " h=" + img.height;
+    document.getElementById('log').value = log;
+});
+
+
+
+      async function getUser() {
+        try {
+          const url =
+            "https://cdn.pixabay.com/photo/2014/02/27/16/10/tree-276014__340.jpg";
+
+          // const filePath = path.join(process.cwd(), "/src/pro.png");
+          fetch(
+            `https://api.imgbb.com/1/upload?key=2c53c27424338bf017f58a186ffe899d&image=${url}`,{
+              method:"POST"
+            }
+          ).then(res=>res.json()).then(data=>console.log("data",data))
+        } catch (error) {
+          console.log("getting error", error);
+        }
+      }
+
       fetch(`http://localhost:4000/encode`)
-      .then((res) => res.json())
-      .then((data) => {
+        .then((res) => res.json())
+        .then((data) => {
           // document.getElementById("img").src = `data:image/png;base64, ${data.image}`;
-        
-          console.log(data[0].image.data)
+
+          console.log(data[0].image.data);
         });
       // renderInvoice()
       // const obj = JSON.parse(data[0].invoice)
