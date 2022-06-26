@@ -130,19 +130,19 @@ supermarketDB.connect(function (err: string) {
 });
 
 //fetch a product and generates a pdf bill for a single purchase
-app.post("/cart/:id", async (req: Request, res: Response) => {
+app.post("/purchase/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   const query = `SELECT * FROM products WHERE product_id = ${id}`;
-  supermarketDB.query(query, (err, result) => {
+  supermarketDB.query(query, async (err, result) => {
     if (err) {
       throw new Error("error occurred");
     }
+    const convertNumSelling = parseFloat(`${result[0].selling_price}`);
     const data = {
       images: {
-        // The logo on top of your invoice
-        logo: "https://public.easyinvoice.cloud/img/logo_en_original.png",
-        // The invoice background
-        background: "https://public.easyinvoice.cloud/img/watermark-draft.jpg",
+        logo: "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",
+        background:
+          "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",
       },
       // Your own data
       sender: {
@@ -151,18 +151,13 @@ app.post("/cart/:id", async (req: Request, res: Response) => {
         zip: "1234 AB",
         city: "Sampletown",
         country: "Samplecountry",
-  
       },
       // Your recipient
       "product info": {
-        product_id: `${result[0].product_id}`,
-        title: `${result[0].title}`,
-        description: `${result[0].description}`,
-        selling_price: `${result[0].selling_price}`,
+        customer: "Mr. Ryan dal",
+        phone: "12345678",
+        address: "Xindu district, Chengdu city",
         city: "Clientcity",
-        cost_price: `${result[0].cost_price}`,
-        // QR_code_hash: `${result[0].QR_code_hash}`,
-        created_at: `${result[0].created_at}`,
       },
       information: {
         // Invoice number
@@ -172,60 +167,64 @@ app.post("/cart/:id", async (req: Request, res: Response) => {
         // Invoice due date
         "due-date": "31-12-2025",
       },
-      // The products you would like to see on your invoice
-      // Total values are being calculated automatically
       products: [
         {
+          product_id: `${result[0].product_id}`,
+          title: `${result[0].title}`,
+          description: `${result[0].description}`,
+          selling_price: convertNumSelling,
+          cost_price: `${result[0].cost_price}`,
+          QR_code_hash: `${result[0].QR_code_hash}`, //will convert it in the image base64 src
+          created_at: `${result[0].created_at}`,
           quantity: 2,
-          description: "Product 1",
           "tax-rate": 6,
-          price: 33.87,
-        },
-        {
-          quantity: 4.1,
-          description: "Product 2",
-          "tax-rate": 6,
-          price: 12.34,
-        },
-        {
-          quantity: 4.5678,
-          description: "Product 3",
-          "tax-rate": 21,
-          price: 6324.453456,
+          Promo_Code: convertNumSelling - 33.87,
         },
       ],
       // The message you would like to display on the bottom of your invoice
       "bottom-notice": "Kindly pay your invoice within 15 days.",
       // Settings to customize your invoice
       settings: {
-        currency: "USD", 
+        currency: "USD",
       },
-     
     };
-
     const convertJson = JSON.stringify(data);
-    const query = `INSERT INTO purchase (invoice, id_product) VALUES ('${convertJson}', ${result[0].product_id})`;
+    const query = `INSERT INTO purchase (invoice, id_product, purchase_at, selling_price, cost_price) VALUES ('${convertJson}', ${result[0].product_id}, CURDATE(), ${result[0].selling_price}, ${result[0].cost_price})`;
     supermarketDB.query(query, function (err: string, result: any) {
-      if (err) throw err;
-      console.log("Result:", result);
+      if (err) {
+        console.log("error",err)
+      }
+      // console.log("Result:", result);
       res.send({ response: result });
     });
+    const result1 = await easyinvoice.createInvoice(convertJson);
+    await fs.writeFileSync("invoice.pdf", result1.pdf, "base64");
   });
 });
 
-app.get("/cart/:id", (req, res) => {
-  const { id } = req.params;
-  const query = `SELECT * FROM purchase WHERE id_purchase = ${id}`;
-  supermarketDB.query(query, (err, result) => {
-    if (err) {
-      console.log(err);
-    }
-    res.send(result);
-  });
-});
+app.get("/purchase", (req, res) => {
+  const { day } = req.query;
+  // console.log("day expected",day)
+  if (day) {
 
-
-
-    app.listen(port, () => {
-      console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
+    const query = `SELECT SUM(selling_price) FROM purchase WHERE purchase_at = DATE_SUB(CURDATE(), INTERVAL ${day} DAY)`;
+    supermarketDB.query(query, async(err, selling_price) => {
+      if (err) {
+        console.log(err);
+      }
+      const selling:any = Object.values(selling_price[0]);
+      const cost_price = `SELECT SUM(cost_price) FROM purchase WHERE purchase_at = DATE_SUB(CURDATE(), INTERVAL ${day} DAY)`;
+      supermarketDB.query(cost_price, async(err, cost_price) => {
+        if (err) {
+          console.log(err);
+        }
+        const cost:any = Object.values(cost_price[0]);
+        res.send({ profit: selling - cost })
     });
+  });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
+});
